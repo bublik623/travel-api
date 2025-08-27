@@ -645,9 +645,18 @@ export class AmadeusService {
       // Step 7: Sort and limit results
       const sortedOffers = allFlightOffers
         .sort((a, b) => {
-          const priceA = parseFloat(a.travelerPricings[0]?.price.total || '0');
-          const priceB = parseFloat(b.travelerPricings[0]?.price.total || '0');
-          return priceA - priceB;
+          // Parse duration strings (ISO 8601 format like 'PT5H30M') to minutes
+          const parseDuration = (duration: string): number => {
+            const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+            if (!match) return 0;
+            const hours = parseInt(match[1] || '0');
+            const minutes = parseInt(match[2] || '0');
+            return hours * 60 + minutes;
+          };
+          
+          const durationA = parseDuration(a.itineraries[0]?.duration || 'PT0M');
+          const durationB = parseDuration(b.itineraries[0]?.duration || 'PT0M');
+          return durationA - durationB; // Sort by shortest duration first
         })
         .slice(0, flightSearchParams.max || 50);
       
