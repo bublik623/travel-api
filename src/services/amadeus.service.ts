@@ -165,6 +165,155 @@ export interface FlightSearchMeta {
   };
 }
 
+// Hotel List API Types
+export interface HotelListRequest {
+  cityCode?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+  radiusUnit?: 'KM' | 'MILE';
+  chainCodes?: string[];
+  amenities?: string[];
+  ratings?: number[];
+  hotelSource?: 'ALL' | 'BEST_UNRATED' | 'VIRTUOSO' | 'EXPEDIA' | 'AMADEUS';
+  checkInDate?: string;
+  checkOutDate?: string;
+  currency?: string;
+  bestRateOnly?: boolean;
+  view?: 'FULL' | 'LIGHT' | 'LONG';
+  page?: {
+    limit?: number;
+    offset?: number;
+  };
+}
+
+export interface HotelListResponse {
+  data: Hotel[];
+  meta: {
+    count: number;
+    links: {
+      self: string;
+      next?: string;
+      last?: string;
+    };
+  };
+}
+
+export interface Hotel {
+  type: string;
+  hotelId: string;
+  chainCode: string;
+  dupeId: string;
+  name: string;
+  rating: number;
+  cityCode: string;
+  latitude: number;
+  longitude: number;
+  hotelDistance: {
+    distance: number;
+    distanceUnit: string;
+  };
+  address: {
+    lines: string[];
+    postalCode: string;
+    cityName: string;
+    countryCode: string;
+    countryName: string;
+  };
+  contact: {
+    phone: string;
+    fax?: string;
+    email?: string;
+  };
+  amenities: string[];
+  media: HotelMedia[];
+  description?: {
+    lang: string;
+    text: string;
+  };
+  available: boolean;
+  offers?: HotelOffer[];
+  policies?: HotelPolicies;
+  lastUpdate: string;
+}
+
+export interface HotelMedia {
+  uri: string;
+  category: string;
+}
+
+export interface HotelOffer {
+  id: string;
+  checkInDate: string;
+  checkOutDate: string;
+  rateCode: string;
+  rateFamilyEstimated: {
+    code: string;
+    type: string;
+  };
+  room: {
+    type: string;
+    typeEstimated: {
+      category: string;
+      beds: number;
+      bedType: string;
+    };
+    description: {
+      text: string;
+      lang: string;
+    };
+  };
+  guests: {
+    adults: number;
+  };
+  price: {
+    currency: string;
+    base: string;
+    total: string;
+    variations: {
+      average: {
+        base: string;
+      };
+      changes: Array<{
+        startDate: string;
+        endDate: string;
+        base: string;
+        total: string;
+      }>;
+    };
+  };
+  policies: {
+    cancellation: {
+      amount: string;
+      deadline: string;
+    };
+    deposit: {
+      amount: string;
+      acceptedFormats: string[];
+    };
+    prepayment: {
+      amount: string;
+      deadline: string;
+    };
+  };
+  self: string;
+}
+
+export interface HotelPolicies {
+  cancellation: {
+    amount: string;
+    deadline: string;
+  };
+  deposit: {
+    amount: string;
+    acceptedFormats: string[];
+  };
+  prepayment: {
+    amount: string;
+    deadline: string;
+  };
+}
+
 export interface FlightOffersSearchRequest {
   originLocationCode: string;
   destinationLocationCode: string;
@@ -208,6 +357,8 @@ export class AmadeusService {
   private static readonly TOKEN_URL = `${this.BASE_URL}/security/oauth2/token`;
   private static readonly AIRPORTS_URL = `${this.BASE_URL}/reference-data/locations/airports`;
   private static readonly FLIGHT_OFFERS_URL = `${this.BASE_URL_V2}/shopping/flight-offers`;
+  // Default hotel search endpoint (by geocode) - for latitude/longitude searches
+  private static readonly HOTEL_LIST_URL = `${this.BASE_URL}/reference-data/locations/hotels/by-geocode`;
 
   private static accessToken: string | null = null;
   private static tokenExpiry: number | null = null;
@@ -305,7 +456,6 @@ export class AmadeusService {
           latitude: latitude.toString(),
           longitude: longitude.toString(),
           radius: radius.toString(),
-          'page[limit]': '50',
           sort: 'relevance'
         },
         headers: {
@@ -758,16 +908,224 @@ export class AmadeusService {
   }
 
   /**
+   * Search for hotels using the Hotel List API
+   */
+  static async searchHotels(request: HotelListRequest): Promise<HotelListResponse> {
+    const {
+      cityCode,
+      latitude,
+      longitude,
+      radius = 5,
+      radiusUnit = 'KM',
+      chainCodes,
+      amenities,
+      ratings,
+      hotelSource = 'ALL',
+      checkInDate,
+      checkOutDate,
+      currency = 'USD',
+      bestRateOnly = false,
+      view = 'FULL',
+      page
+    } = request;
+
+    // Validate required parameters
+    if (!cityCode && (!latitude || !longitude)) {
+      throw new Error('Either cityCode or both latitude and longitude are required');
+    }
+
+    // Validate coordinates if provided
+    if (latitude !== undefined && (latitude < -90 || latitude > 90)) {
+      throw new Error('Latitude must be between -90 and 90');
+    }
+
+    if (longitude !== undefined && (longitude < -180 || longitude > 180)) {
+      throw new Error('Longitude must be between -180 and 180');
+    }
+
+    // Validate radius
+    if (radius <= 0 || radius > 100) {
+      throw new Error('Radius must be between 1 and 100');
+    }
+
+    // Validate date format if provided
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (checkInDate && !dateRegex.test(checkInDate)) {
+      throw new Error('Check-in date must be in YYYY-MM-DD format');
+    }
+
+    if (checkOutDate && !dateRegex.test(checkOutDate)) {
+      throw new Error('Check-out date must be in YYYY-MM-DD format');
+    }
+
+    // Validate ratings
+    if (ratings) {
+      for (const rating of ratings) {
+        if (rating < 1 || rating > 5) {
+          throw new Error('Ratings must be between 1 and 5');
+        }
+      }
+    }
+
+    const accessToken = await this.getAccessToken();
+
+    // Determine the correct endpoint based on parameters
+    const endpoint = cityCode 
+      ? `${this.BASE_URL}/reference-data/locations/hotels/by-city`
+      : `${this.BASE_URL}/reference-data/locations/hotels/by-geocode`;
+
+    // Build params object based on endpoint
+    const params: Record<string, string> = {};
+
+    if (cityCode) {
+      // For by-city endpoint
+      params.radius = radius.toString();
+      params.radiusUnit = radiusUnit;
+      params.hotelSource = hotelSource;
+      params.currency = currency;
+      params.bestRateOnly = bestRateOnly.toString();
+      params.view = view;
+      params.cityCode = cityCode;
+
+      if (chainCodes && chainCodes.length > 0) {
+        params.chainCodes = chainCodes.join(',');
+      }
+
+      if (amenities && amenities.length > 0) {
+        params.amenities = amenities.join(',');
+      }
+
+      if (ratings && ratings.length > 0) {
+        params.ratings = ratings.join(',');
+      }
+
+      if (checkInDate) {
+        params.checkInDate = checkInDate;
+      }
+
+      if (checkOutDate) {
+        params.checkOutDate = checkOutDate;
+      }
+
+
+      if (page?.offset) {
+        params['page[offset]'] = page.offset.toString();
+      }
+    } else {
+      // For by-geocode endpoint - only send essential parameters
+      // Use exact format from example: latitude=48.8588897&longitude=2.320041
+      params.latitude = latitude!.toString();
+      params.longitude = longitude!.toString();
+      params.radius = radius.toString();
+      params.radiusUnit = radiusUnit;
+
+
+      if (page?.offset) {
+        params['page[offset]'] = page.offset.toString();
+      }
+    }
+
+    try {
+      console.log('🔑 Hotel search - Access token length:', accessToken.length);
+      console.log('🔑 Hotel search - Access token preview:', accessToken);
+      console.log('🔑 Hotel search params:', params);
+      console.log('🔑 Request URL:', endpoint);
+      
+      // Log the full URL with parameters for debugging
+      const url = new URL(endpoint);
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+      });
+      console.log('🔑 Full request URL:', url.toString());
+
+      const response = await axios.get(endpoint, {
+        params,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('✅ Hotel search request successful');
+      
+      // Limit results to 10 hotels
+      const limitedData = response.data.data.slice(0, 10);
+      const limitedResponse = {
+        ...response.data,
+        data: limitedData,
+        meta: {
+          ...response.data.meta,
+          count: Math.min(response.data.meta.count, 10)
+        }
+      };
+      
+      return limitedResponse;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorData = error.response?.data;
+        const errorText = errorData ? JSON.stringify(errorData) : error.message;
+        console.error('❌ Hotel search request failed:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: errorData,
+          url: error.config?.url,
+          params: error.config?.params,
+          endpoint: endpoint
+        });
+        throw new Error(`Amadeus Hotel API error: ${error.response?.status} ${error.response?.statusText} - ${errorText}`);
+      }
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to fetch hotel data');
+    }
+  }
+
+  /**
+   * Search for hotels by city name (automatically finds city code)
+   */
+  static async searchHotelsByCity(
+    cityName: string,
+    countryCode?: string,
+    options?: Omit<HotelListRequest, 'cityCode'>
+  ): Promise<HotelListResponse> {
+    try {
+      console.log('Starting city-based hotel search:', { cityName, countryCode });
+      
+      // Step 1: Get city code from city name
+      
+      const cityCoordinates = await this.getCityCoordinates(cityName, countryCode);
+      console.log('City code found:', cityCoordinates);
+      
+      // Step 2: Search for hotels using the city code
+      const hotelSearchRequest: HotelListRequest = {
+        ...options,
+        latitude: cityCoordinates.latitude,
+        longitude: cityCoordinates.longitude
+      };
+      
+      return await this.searchHotels(hotelSearchRequest);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to search hotels by city');
+    }
+  }
+
+  /**
    * Check which APIs are available with current credentials
    */
   static async checkApiAvailability(): Promise<{
     airports: boolean;
     flights: boolean;
+    hotels: boolean;
     errors: string[];
   }> {
     const results = {
       airports: false,
       flights: false,
+      hotels: false,
       errors: [] as string[]
     };
 
@@ -796,6 +1154,18 @@ export class AmadeusService {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       results.errors.push(`Flights API: ${errorMsg}`);
+    }
+
+    // Test hotels API
+    try {
+      await this.searchHotels({
+        cityCode: 'NYC',
+        radius: 5
+      });
+      results.hotels = true;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      results.errors.push(`Hotels API: ${errorMsg}`);
     }
 
     return results;

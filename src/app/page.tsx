@@ -2,6 +2,7 @@ import { Plane, MapPin, Calendar, Users } from "lucide-react";
 import { GeocodeDemo } from "@/components/geocode-demo";
 import { AirportSearchDemo } from "@/components/airport-search-demo";
 import { FlightSearchDemo } from "@/components/flight-search-demo";
+import { HotelSearchDemo } from "@/components/hotel-search-demo";
 
 export default function HomePage() {
   return (
@@ -93,6 +94,14 @@ export default function HomePage() {
             Пошук авіаквитків
           </h2>
           <FlightSearchDemo />
+        </section>
+
+        {/* Hotel Search Demo Section */}
+        <section className="mt-24">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            Пошук готелів
+          </h2>
+          <HotelSearchDemo />
         </section>
 
         {/* Stats Section */}

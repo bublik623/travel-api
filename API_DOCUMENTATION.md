@@ -2,7 +2,7 @@
 
 ## Опис
 
-TravelAPI надає комплексні послуги для подорожей, включаючи геокодування, пошук аеропортів та пошук авіаквитків через Amadeus API.
+TravelAPI надає комплексні послуги для подорожей, включаючи геокодування, пошук аеропортів, пошук авіаквитків та пошук готелів через Amadeus API.
 
 ## Endpoints
 
@@ -296,6 +296,181 @@ GET /api/flights/1
 }
 ```
 
+### 4. Пошук готелів API
+
+API для пошуку готелів через Amadeus Hotel List API.
+
+#### 4.1 Пошук готелів за кодом міста або координатами
+
+```
+GET /api/hotels
+```
+
+#### Параметри запиту
+
+| Параметр | Тип | Обов'язковий | Опис |
+|----------|-----|--------------|------|
+| `cityCode` | string | ✅* | IATA код міста (або latitude + longitude) |
+| `latitude` | number | ✅* | Широта (від -90 до 90) |
+| `longitude` | number | ✅* | Довгота (від -180 до 180) |
+| `radius` | number | ❌ | Радіус пошуку (1-100, за замовчуванням 5) |
+| `radiusUnit` | string | ❌ | Одиниця радіуса (KM, MILE, за замовчуванням KM) |
+| `chainCodes` | string[] | ❌ | Коди готельних мереж (через кому) |
+| `amenities` | string[] | ❌ | Зручності (через кому, напр. WIFI,POOL,GYM) |
+| `ratings` | number[] | ❌ | Рейтинги готелів (1-5, через кому) |
+| `hotelSource` | string | ❌ | Джерело даних (ALL, BEST_UNRATED, VIRTUOSO, EXPEDIA, AMADEUS) |
+| `checkInDate` | string | ❌ | Дата заїзду (YYYY-MM-DD) |
+| `checkOutDate` | string | ❌ | Дата виїзду (YYYY-MM-DD) |
+| `currency` | string | ❌ | Код валюти (за замовчуванням USD) |
+| `bestRateOnly` | boolean | ❌ | Тільки найкращі тарифи |
+| `view` | string | ❌ | Тип відображення (FULL, LIGHT, LONG) |
+| `limit` | number | ❌ | Ліміт результатів |
+| `offset` | number | ❌ | Зміщення для пагінації |
+
+* Потрібно вказати або `cityCode`, або обидва `latitude` та `longitude`
+
+#### 4.2 Пошук готелів за назвою міста
+
+```
+GET /api/hotels/by-city
+```
+
+#### Параметри запиту
+
+| Параметр | Тип | Обов'язковий | Опис |
+|----------|-----|--------------|------|
+| `city` | string | ✅ | Назва міста |
+| `countryCode` | string | ❌ | Код країни (для уточнення) |
+| `radius` | number | ❌ | Радіус пошуку (1-100, за замовчуванням 5) |
+| `radiusUnit` | string | ❌ | Одиниця радіуса (KM, MILE, за замовчуванням KM) |
+| `chainCodes` | string[] | ❌ | Коди готельних мереж (через кому) |
+| `amenities` | string[] | ❌ | Зручності (через кому, напр. WIFI,POOL,GYM) |
+| `ratings` | number[] | ❌ | Рейтинги готелів (1-5, через кому) |
+| `hotelSource` | string | ❌ | Джерело даних (ALL, BEST_UNRATED, VIRTUOSO, EXPEDIA, AMADEUS) |
+| `checkInDate` | string | ❌ | Дата заїзду (YYYY-MM-DD) |
+| `checkOutDate` | string | ❌ | Дата виїзду (YYYY-MM-DD) |
+| `currency` | string | ❌ | Код валюти (за замовчуванням USD) |
+| `bestRateOnly` | boolean | ❌ | Тільки найкращі тарифи |
+| `view` | string | ❌ | Тип відображення (FULL, LIGHT, LONG) |
+| `limit` | number | ❌ | Ліміт результатів |
+| `offset` | number | ❌ | Зміщення для пагінації |
+
+#### Приклади запитів
+
+**Пошук за кодом міста:**
+
+```bash
+# Базовий пошук
+GET /api/hotels?cityCode=NYC&radius=5
+
+# Пошук з фільтрами
+GET /api/hotels?cityCode=NYC&radius=10&amenities=WIFI,POOL&ratings=4,5&currency=USD&limit=20
+```
+
+**Пошук за координатами:**
+
+```bash
+# Пошук за координатами
+GET /api/hotels?latitude=40.7128&longitude=-74.0060&radius=5&amenities=WIFI
+```
+
+**Пошук за назвою міста:**
+
+```bash
+# Базовий пошук за назвою міста
+GET /api/hotels/by-city?city=New York&radius=5
+
+# Пошук з уточненням країни
+GET /api/hotels/by-city?city=Paris&countryCode=FR&amenities=WIFI,POOL&ratings=4,5
+```
+
+#### Відповідь
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "type": "hotel",
+      "hotelId": "HTNYC001",
+      "chainCode": "HI",
+      "dupeId": "700001234",
+      "name": "Hilton New York",
+      "rating": 4,
+      "cityCode": "NYC",
+      "latitude": 40.7128,
+      "longitude": -74.0060,
+      "hotelDistance": {
+        "distance": 0.5,
+        "distanceUnit": "KM"
+      },
+      "address": {
+        "lines": ["123 Main Street"],
+        "postalCode": "10001",
+        "cityName": "New York",
+        "countryCode": "US",
+        "countryName": "United States"
+      },
+      "contact": {
+        "phone": "+1-212-555-0123",
+        "email": "info@hiltonnyc.com"
+      },
+      "amenities": ["WIFI", "POOL", "GYM", "RESTAURANT"],
+      "media": [
+        {
+          "uri": "https://example.com/hotel-image.jpg",
+          "category": "EXTERIOR"
+        }
+      ],
+      "description": {
+        "lang": "en",
+        "text": "Luxury hotel in the heart of Manhattan"
+      },
+      "available": true,
+      "offers": [
+        {
+          "id": "OFFER001",
+          "checkInDate": "2024-06-15",
+          "checkOutDate": "2024-06-16",
+          "rateCode": "RACK",
+          "room": {
+            "type": "STANDARD",
+            "typeEstimated": {
+              "category": "STANDARD_ROOM",
+              "beds": 1,
+              "bedType": "KING"
+            }
+          },
+          "guests": {
+            "adults": 2
+          },
+          "price": {
+            "currency": "USD",
+            "base": "200.00",
+            "total": "220.00"
+          },
+          "policies": {
+            "cancellation": {
+              "amount": "50.00",
+              "deadline": "2024-06-14T18:00:00"
+            }
+          }
+        }
+      ],
+      "lastUpdate": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "meta": {
+    "count": 1,
+    "links": {
+      "self": "https://api.example.com/hotels?cityCode=NYC",
+      "next": "https://api.example.com/hotels?cityCode=NYC&offset=20"
+    }
+  },
+  "message": "Found 1 hotels"
+}
+```
+
 ## Коди помилок
 
 ### 400 Bad Request
@@ -351,8 +526,60 @@ const searchFlights = async (params: FlightSearchParams) => {
   return data;
 };
 
+// Пошук готелів
+const searchHotels = async (params: HotelSearchParams) => {
+  const queryParams = new URLSearchParams();
+  
+  // Додаємо параметри до URL
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (Array.isArray(value)) {
+        queryParams.append(key, value.join(','));
+      } else {
+        queryParams.append(key, String(value));
+      }
+    }
+  });
+  
+  const response = await fetch(`/api/hotels?${queryParams.toString()}`);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error);
+  }
+  
+  return data;
+};
+
+// Пошук готелів за назвою міста
+const searchHotelsByCity = async (city: string, params: Omit<HotelSearchParams, 'cityCode'>) => {
+  const queryParams = new URLSearchParams();
+  queryParams.append('city', city);
+  
+  // Додаємо інші параметри
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (Array.isArray(value)) {
+        queryParams.append(key, value.join(','));
+      } else {
+        queryParams.append(key, String(value));
+      }
+    }
+  });
+  
+  const response = await fetch(`/api/hotels/by-city?${queryParams.toString()}`);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error);
+  }
+  
+  return data;
+};
+
 // Використання
 try {
+  // Пошук авіаквитків
   const flights = await searchFlights({
     originLocationCode: 'NYC',
     destinationLocationCode: 'LAX',
@@ -362,6 +589,30 @@ try {
   });
   
   console.log('Знайдено рейсів:', flights.data.meta.count);
+  
+  // Пошук готелів за кодом міста
+  const hotels = await searchHotels({
+    cityCode: 'NYC',
+    radius: 5,
+    amenities: ['WIFI', 'POOL'],
+    ratings: [4, 5],
+    currency: 'USD',
+    limit: 10
+  });
+  
+  console.log('Знайдено готелів:', hotels.meta.count);
+  
+  // Пошук готелів за назвою міста
+  const cityHotels = await searchHotelsByCity('New York', {
+    radius: 5,
+    amenities: ['WIFI', 'POOL'],
+    ratings: [4, 5],
+    currency: 'USD',
+    limit: 10
+  });
+  
+  console.log('Знайдено готелів у місті:', cityHotels.meta.count);
+  
 } catch (error) {
   console.error('Помилка:', error.message);
 }
@@ -383,11 +634,25 @@ curl -X POST http://localhost:3000/api/flights \
 
 # Отримання конкретного авіаквитка
 curl http://localhost:3000/api/flights/1
+
+# Пошук готелів за кодом міста
+curl "http://localhost:3000/api/hotels?cityCode=NYC&radius=5&amenities=WIFI,POOL&ratings=4,5&currency=USD&limit=10"
+
+# Пошук готелів за координатами
+curl "http://localhost:3000/api/hotels?latitude=40.7128&longitude=-74.0060&radius=5&amenities=WIFI&currency=USD"
+
+# Пошук готелів за назвою міста
+curl "http://localhost:3000/api/hotels/by-city?city=New%20York&radius=5&amenities=WIFI,POOL&ratings=4,5&currency=USD&limit=10"
+
+# Пошук готелів за назвою міста з уточненням країни
+curl "http://localhost:3000/api/hotels/by-city?city=Paris&countryCode=FR&radius=5&amenities=WIFI&currency=EUR"
 ```
 
 ## Як працює пошук за містами
 
-При використанні пошуку за містами API автоматично виконує наступні кроки:
+### Пошук авіаквитків за містами
+
+При використанні пошуку авіаквитків за містами API автоматично виконує наступні кроки:
 
 1. **Геокодування міст** - отримує координати міст через Nominatim (OpenStreetMap)
 2. **Пошук аеропортів** - знаходить найближчі аеропорти в радіусі `airportSearchRadius` км
@@ -397,6 +662,15 @@ curl http://localhost:3000/api/flights/1
    - Валідністю IATA коду
 4. **Пошук рейсів** - шукає рейси між найкращими аеропортами
 5. **Сортування результатів** - сортує за ціною та обмежує кількість результатів
+
+### Пошук готелів за містами
+
+При використанні пошуку готелів за містами API автоматично виконує наступні кроки:
+
+1. **Пошук коду міста** - використовує Amadeus Location API для отримання IATA коду міста
+2. **Пошук готелів** - шукає готелі в радіусі вказаного радіуса від центру міста
+3. **Фільтрація результатів** - застосовує вказані фільтри (рейтинг, зручності, тощо)
+4. **Повернення результатів** - повертає відфільтровані готелі з детальною інформацією
 
 ### Переваги пошуку за містами
 
