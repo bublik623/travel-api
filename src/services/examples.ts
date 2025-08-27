@@ -130,7 +130,7 @@ export async function searchWithFallback(city: string, country?: string) {
       type: 'full',
       data: result,
     };
-  } catch (error) {
+  } catch {
     // Fallback to geocoding only
     try {
       const geocodingResult = await GeocodingService.geocode({
@@ -143,7 +143,7 @@ export async function searchWithFallback(city: string, country?: string) {
         data: geocodingResult,
         message: 'Airport search unavailable, showing location only',
       };
-    } catch (geocodingError) {
+    } catch {
       throw new Error('Both services are unavailable');
     }
   }

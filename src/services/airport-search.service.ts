@@ -1,6 +1,6 @@
 import { GeocodingService, GeocodingRequest, GeocodingResult } from './geocoding.service';
-import { AmadeusService, AmadeusAirportSearchRequest, AmadeusAirportSearchResponse } from './amadeus.service';
-import { Airport, AirportSearchResponse } from '@/types';
+import { AmadeusService, AmadeusAirportSearchRequest } from './amadeus.service';
+import { Airport } from '@/types';
 
 export interface AirportSearchRequest {
   city: string;

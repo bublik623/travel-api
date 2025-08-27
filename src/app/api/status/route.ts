@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { AirportSearchService } from '@/services/airport-search.service';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const serviceStatus = AirportSearchService.getServiceStatus();
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AmadeusService, FlightOffersSearchRequest, CityFlightSearchRequest } from '@/services/amadeus.service';
-import { GeocodingService } from '@/services/geocoding.service';
 
 export async function GET(request: NextRequest) {
   console.log('🚀 Flight search GET request started');

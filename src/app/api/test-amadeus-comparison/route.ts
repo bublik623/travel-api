@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { AmadeusService } from '@/services/amadeus.service';
+import { NextResponse } from 'next/server';
+import { AmadeusService, AmadeusAirportSearchResponse, FlightOffersSearchResponse } from '@/services/amadeus.service';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const results = {
-      airports: null as any,
-      flights: null as any,
+      airports: null as AmadeusAirportSearchResponse | null,
+      flights: null as FlightOffersSearchResponse | null,
       errors: [] as string[]
     };
 

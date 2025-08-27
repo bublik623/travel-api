@@ -604,7 +604,6 @@ export class AmadeusService {
       
       // Step 6: Search for flights using the best airports
       const allFlightOffers: FlightOffer[] = [];
-      const maxResultsPerCombination = Math.floor((flightSearchParams.max || 50) / (bestOriginAirports.length * bestDestinationAirports.length));
       
       for (const originAirport of bestOriginAirports.slice(0, 2)) { // Limit to top 3 origin airports
         for (const destAirport of bestDestinationAirports.slice(0, 2)) { // Limit to top 3 destination airports

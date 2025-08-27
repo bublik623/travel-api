@@ -279,7 +279,7 @@ export function FlightSearchDemo({ className }: FlightSearchDemoProps) {
                   <label className="block text-sm font-medium mb-1">Travel Class</label>
                   <select
                     value={airportSearchParams.travelClass || ''}
-                    onChange={(e) => setAirportSearchParams(prev => ({ ...prev, travelClass: e.target.value as any || undefined }))}
+                    onChange={(e) => setAirportSearchParams(prev => ({ ...prev, travelClass: e.target.value as 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST' | undefined || undefined }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Any</option>
@@ -341,9 +341,9 @@ export function FlightSearchDemo({ className }: FlightSearchDemoProps) {
                          {offer.oneWay ? 'One Way' : 'Round Trip'} • {offer.numberOfBookableSeats} seats available
                        </p>
                        {/* Show airport information if available */}
-                       {(offer as any).originAirport && (offer as any).destinationAirport && (
+                       {(offer as unknown as { originAirport?: { city: string }; destinationAirport?: { city: string } }).originAirport && (offer as unknown as { originAirport?: { city: string }; destinationAirport?: { city: string } }).destinationAirport && (
                          <p className="text-xs text-gray-500 mt-1">
-                           {(offer as any).originAirport.city} → {(offer as any).destinationAirport.city}
+                           {(offer as unknown as { originAirport?: { city: string }; destinationAirport?: { city: string } }).originAirport?.city} → {(offer as unknown as { originAirport?: { city: string }; destinationAirport?: { city: string } }).destinationAirport?.city}
                          </p>
                        )}
                      </div>
@@ -369,7 +369,7 @@ export function FlightSearchDemo({ className }: FlightSearchDemoProps) {
                           </span>
                         </div>
                         
-                        {itinerary.segments.map((segment, segIndex) => (
+                        {itinerary.segments.map((segment) => (
                           <div key={segment.id} className="flex items-center justify-between py-1">
                             <div className="flex items-center space-x-3">
                               <div className="text-center">

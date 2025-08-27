@@ -7,8 +7,8 @@ describe('AmadeusService Flight Search', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset static properties
-    (AmadeusService as any).accessToken = null;
-    (AmadeusService as any).tokenExpiry = null;
+    (AmadeusService as unknown as { accessToken: string | null; tokenExpiry: number | null }).accessToken = null;
+    (AmadeusService as unknown as { accessToken: string | null; tokenExpiry: number | null }).tokenExpiry = null;
   });
 
   describe('searchFlightOffers', () => {

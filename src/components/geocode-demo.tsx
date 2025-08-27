@@ -37,7 +37,7 @@ export function GeocodeDemo() {
       }
 
       setResult(data as GeocodeResponse);
-    } catch (err) {
+    } catch {
       setError('Помилка при отриманні координат');
     } finally {
       setIsLoading(false);

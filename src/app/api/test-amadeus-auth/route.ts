@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { AmadeusService } from '@/services/amadeus.service';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Test if Amadeus service is available
     const isAvailable = AmadeusService.isAvailable();
