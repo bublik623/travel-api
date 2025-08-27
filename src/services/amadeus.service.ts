@@ -204,9 +204,10 @@ export interface CityFlightSearchRequest {
 
 export class AmadeusService {
   private static readonly BASE_URL = 'https://test.api.amadeus.com/v1';
+  private static readonly BASE_URL_V2 = 'https://test.api.amadeus.com/v2';
   private static readonly TOKEN_URL = `${this.BASE_URL}/security/oauth2/token`;
   private static readonly AIRPORTS_URL = `${this.BASE_URL}/reference-data/locations/airports`;
-  private static readonly FLIGHT_OFFERS_URL = `${this.BASE_URL}/shopping/flight-offers`;
+  private static readonly FLIGHT_OFFERS_URL = `${this.BASE_URL_V2}/shopping/flight-offers`;
 
   private static accessToken: string | null = null;
   private static tokenExpiry: number | null = null;
@@ -236,10 +237,12 @@ export class AmadeusService {
    */
   private static async getAccessToken(): Promise<string> {
     // Check if we have a valid token
-    // if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-    //   return this.accessToken;
-    // }
+    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
+      console.log('🔑 Using cached token (expires in', Math.round((this.tokenExpiry - Date.now()) / 1000), 'seconds)');
+      return this.accessToken;
+    }
 
+    console.log('🔑 Getting new access token...');
     const { clientId, clientSecret } = this.getCredentials();
 
                 try {
@@ -293,7 +296,8 @@ export class AmadeusService {
 
     const accessToken = await this.getAccessToken();
 
-    console.log('🔑 Access token:', accessToken);
+    console.log('🔑 Airport search - Access token length:', accessToken.length);
+    console.log('🔑 Airport search - Access token preview:', accessToken.substring(0, 20) + '...');
 
     try {
       const response = await axios.get(this.AIRPORTS_URL, {
@@ -310,10 +314,19 @@ export class AmadeusService {
         },
       });
 
-        return response.data;
+      console.log('✅ Airport search request successful');
+      return response.data;
       } catch (error) {
         if (axios.isAxiosError(error)) {
           const errorText = error.response?.data || error.message;
+          console.error('❌ Airport search request failed:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            headers: error.response?.headers,
+            data: error.response?.data,
+            url: error.config?.url,
+            params: error.config?.params
+          });
           throw new Error(`Amadeus API error: ${error.response?.status} ${error.response?.statusText} - ${errorText}`);
         }
         if (error instanceof Error) {
@@ -376,7 +389,7 @@ export class AmadeusService {
       throw new Error('Number of infants cannot exceed number of adults');
     }
 
-    const accessToken = await this.getAccessToken();
+    
 
     // Build params object
     const params: Record<string, string> = {
@@ -415,6 +428,12 @@ export class AmadeusService {
     }
 
     try {
+      const accessToken = await this.getAccessToken();
+      console.log('🔑 Access token length:', accessToken.length);
+      console.log('🔑 Access token preview:', accessToken.substring(0, 20) + '...');
+      console.log('🔑 Params:', params);
+      console.log('🔑 Request URL:', this.FLIGHT_OFFERS_URL);
+      
       const response = await axios.get(this.FLIGHT_OFFERS_URL, {
         params,
         headers: {
@@ -423,11 +442,20 @@ export class AmadeusService {
         },
       });
 
-        return response.data;
+      console.log('✅ Flight offers request successful');
+      return response.data;
       } catch (error) {
         if (axios.isAxiosError(error)) {
           const errorText = error.response?.data || error.message;
-          throw new Error(`Amadeus Flight API error: ${error.response?.status} ${error.response?.statusText} - ${errorText}`);
+          console.error('❌ Flight offers request failed:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            headers: error.response?.headers,
+            data: error.response?.data,
+            url: error.config?.url,
+            params: error.config?.params
+          });
+          throw new Error(`Amadeus Flight API error: ${error.response?.status} ${JSON.stringify(error.response?.statusText)} - ${JSON.stringify(errorText)}`);
         }
         if (error instanceof Error) {
           throw error;
@@ -578,14 +606,14 @@ export class AmadeusService {
       const allFlightOffers: FlightOffer[] = [];
       const maxResultsPerCombination = Math.floor((flightSearchParams.max || 50) / (bestOriginAirports.length * bestDestinationAirports.length));
       
-      for (const originAirport of bestOriginAirports.slice(0, 1)) { // Limit to top 3 origin airports
-        for (const destAirport of bestDestinationAirports.slice(0, 1)) { // Limit to top 3 destination airports
+      for (const originAirport of bestOriginAirports.slice(0, 2)) { // Limit to top 3 origin airports
+        for (const destAirport of bestDestinationAirports.slice(0, 2)) { // Limit to top 3 destination airports
           try {
             const flightSearchRequest: FlightOffersSearchRequest = {
               ...flightSearchParams,
               originLocationCode: originAirport.iataCode,
               destinationLocationCode: destAirport.iataCode,
-              max: maxResultsPerCombination
+              max: 5
             };
             
             const flightOffers = await this.searchFlightOffers(flightSearchRequest);
@@ -719,5 +747,49 @@ export class AmadeusService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Check which APIs are available with current credentials
+   */
+  static async checkApiAvailability(): Promise<{
+    airports: boolean;
+    flights: boolean;
+    errors: string[];
+  }> {
+    const results = {
+      airports: false,
+      flights: false,
+      errors: [] as string[]
+    };
+
+    // Test airports API
+    try {
+      await this.searchAirports({
+        latitude: 40.7128,
+        longitude: -74.0060,
+        radius: 10
+      });
+      results.airports = true;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      results.errors.push(`Airports API: ${errorMsg}`);
+    }
+
+    // Test flights API
+    try {
+      await this.searchFlightOffers({
+        originLocationCode: 'DUS',
+        destinationLocationCode: 'CDG',
+        departureDate: '2025-09-15',
+        adults: 1
+      });
+      results.flights = true;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      results.errors.push(`Flights API: ${errorMsg}`);
+    }
+
+    return results;
   }
 }
