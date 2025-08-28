@@ -51,6 +51,7 @@ describe('AmadeusService Flight Search', () => {
       // Mock environment variables
       process.env.AMADEUS_CLIENT_ID = 'test-client-id';
       process.env.AMADEUS_CLIENT_SECRET = 'test-client-secret';
+      process.env.AMADEUS_BASE_URL = 'https://test.api.amadeus.com';
 
       // Mock token response
       (fetch as jest.Mock)
@@ -144,6 +145,7 @@ describe('AmadeusService Flight Search', () => {
       // Mock environment variables
       process.env.AMADEUS_CLIENT_ID = 'test-client-id';
       process.env.AMADEUS_CLIENT_SECRET = 'test-client-secret';
+      process.env.AMADEUS_BASE_URL = 'https://test.api.amadeus.com';
 
       // Mock token response
       (fetch as jest.Mock)
@@ -186,6 +188,7 @@ describe('AmadeusService Flight Search', () => {
       // Mock environment variables
       process.env.AMADEUS_CLIENT_ID = 'test-client-id';
       process.env.AMADEUS_CLIENT_SECRET = 'test-client-secret';
+      process.env.AMADEUS_BASE_URL = 'https://test.api.amadeus.com';
 
       // Mock token response
       (fetch as jest.Mock)
@@ -230,6 +233,7 @@ describe('AmadeusService Flight Search', () => {
       // Mock environment variables
       process.env.AMADEUS_CLIENT_ID = 'test-client-id';
       process.env.AMADEUS_CLIENT_SECRET = 'test-client-secret';
+      process.env.AMADEUS_BASE_URL = 'https://test.api.amadeus.com';
 
       // Mock token response
       (fetch as jest.Mock)
@@ -272,6 +276,7 @@ describe('AmadeusService Flight Search', () => {
     it('should return true when credentials are configured', () => {
       process.env.AMADEUS_CLIENT_ID = 'test-client-id';
       process.env.AMADEUS_CLIENT_SECRET = 'test-client-secret';
+      process.env.AMADEUS_BASE_URL = 'https://test.api.amadeus.com';
 
       expect(AmadeusService.isAvailable()).toBe(true);
     });
@@ -279,6 +284,7 @@ describe('AmadeusService Flight Search', () => {
     it('should return false when credentials are missing', () => {
       delete process.env.AMADEUS_CLIENT_ID;
       delete process.env.AMADEUS_CLIENT_SECRET;
+      delete process.env.AMADEUS_BASE_URL;
 
       expect(AmadeusService.isAvailable()).toBe(false);
     });

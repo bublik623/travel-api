@@ -473,30 +473,59 @@ export interface CityFlightSearchRequest {
 }
 
 export class AmadeusService {
-  private static readonly BASE_URL = 'https://test.api.amadeus.com/v1';
-  private static readonly BASE_URL_V2 = 'https://test.api.amadeus.com/v2';
-  private static readonly BASE_URL_V3 = 'https://test.api.amadeus.com/v3';
-  private static readonly TOKEN_URL = `${this.BASE_URL}/security/oauth2/token`;
-  private static readonly AIRPORTS_URL = `${this.BASE_URL}/reference-data/locations/airports`;
-  private static readonly FLIGHT_OFFERS_URL = `${this.BASE_URL_V2}/shopping/flight-offers`;
+  private static BASE_URL: string;
+  private static BASE_URL_V2: string;
+  private static BASE_URL_V3: string;
+  private static TOKEN_URL: string;
+  private static AIRPORTS_URL: string;
+  private static FLIGHT_OFFERS_URL: string;
   
   // Hotel Search API endpoints
-  private static readonly HOTEL_SEARCH_URL = `${this.BASE_URL}/reference-data/locations/hotels`;
-  private static readonly HOTEL_OFFERS_URL = `${this.BASE_URL_V3}/shopping/hotel-offers`;
+  private static HOTEL_SEARCH_URL: string;
+  private static HOTEL_OFFERS_URL: string;
 
   private static accessToken: string | null = null;
   private static tokenExpiry: number | null = null;
 
   /**
+   * Initialize static properties with environment variables
+   */
+  private static initializeUrls(): void {
+    const baseUrl = process.env.AMADEUS_BASE_URL;
+    
+    if (!baseUrl) {
+      throw new Error('AMADEUS_BASE_URL environment variable is not configured.');
+    }
+
+    // Remove trailing slash if present
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+    
+    this.BASE_URL = `${cleanBaseUrl}/v1`;
+    this.BASE_URL_V2 = `${cleanBaseUrl}/v2`;
+    this.BASE_URL_V3 = `${cleanBaseUrl}/v3`;
+    this.TOKEN_URL = `${this.BASE_URL}/security/oauth2/token`;
+    this.AIRPORTS_URL = `${this.BASE_URL}/reference-data/locations/airports`;
+    this.FLIGHT_OFFERS_URL = `${this.BASE_URL_V2}/shopping/flight-offers`;
+    this.HOTEL_SEARCH_URL = `${this.BASE_URL}/reference-data/locations/hotels`;
+    this.HOTEL_OFFERS_URL = `${this.BASE_URL_V3}/shopping/hotel-offers`;
+  }
+
+  /**
    * Get Amadeus API credentials from environment variables
    */
   private static getCredentials(): { clientId: string; clientSecret: string } {
+    // Initialize URLs if not already done
+    if (!this.BASE_URL) {
+      this.initializeUrls();
+    }
+
     const clientId = process.env.AMADEUS_CLIENT_ID;
     const clientSecret = process.env.AMADEUS_CLIENT_SECRET;
 
     console.log('Environment check:', {
       AMADEUS_CLIENT_ID: clientId ? 'SET' : 'NOT SET',
       AMADEUS_CLIENT_SECRET: clientSecret ? 'SET' : 'NOT SET',
+      AMADEUS_BASE_URL: process.env.AMADEUS_BASE_URL ? 'SET' : 'NOT SET',
       NODE_ENV: process.env.NODE_ENV
     });
 
