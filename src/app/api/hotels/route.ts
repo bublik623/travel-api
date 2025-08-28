@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AmadeusService, HotelListRequest } from '@/services/amadeus.service';
+import { AmadeusService, HotelSearchRequest } from '@/services/amadeus.service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build hotel search request
-    const hotelRequest: HotelListRequest = {
+    const hotelRequest: HotelSearchRequest = {
       cityCode,
       latitude,
       longitude,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AmadeusService } from '@/services/amadeus.service';
+import { AmadeusService, HotelOffersSearchRequest } from '@/services/amadeus.service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,34 +14,50 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Extract query parameters
-    const cityName = searchParams.get('cityName');
-    const countryCode = searchParams.get('countryCode') || undefined;
+    const hotelIds = searchParams.get('hotelIds')?.split(',') || undefined;
+    const cityCode = searchParams.get('cityCode') || undefined;
+    const latitude = searchParams.get('latitude') ? parseFloat(searchParams.get('latitude')!) : undefined;
+    const longitude = searchParams.get('longitude') ? parseFloat(searchParams.get('longitude')!) : undefined;
     const radius = searchParams.get('radius') ? parseInt(searchParams.get('radius')!) : 5;
     const radiusUnit = (searchParams.get('radiusUnit') as 'KM' | 'MILE') || 'KM';
     const chainCodes = searchParams.get('chainCodes')?.split(',') || undefined;
     const amenities = searchParams.get('amenities')?.split(',') || undefined;
     const ratings = searchParams.get('ratings')?.split(',').map(r => parseInt(r)) || undefined;
     const hotelSource = (searchParams.get('hotelSource') as 'ALL' | 'BEST_UNRATED' | 'VIRTUOSO' | 'EXPEDIA' | 'AMADEUS') || 'ALL';
-    const checkInDate = searchParams.get('checkInDate') || undefined;
-    const checkOutDate = searchParams.get('checkOutDate') || undefined;
+    const checkInDate = searchParams.get('checkInDate');
+    const checkOutDate = searchParams.get('checkOutDate');
+    const roomQuantity = searchParams.get('roomQuantity') ? parseInt(searchParams.get('roomQuantity')!) : 1;
+    const priceRange = searchParams.get('priceRange') || undefined;
     const currency = searchParams.get('currency') || 'USD';
+    const paymentPolicy = searchParams.get('paymentPolicy') || undefined;
+    const boardType = searchParams.get('boardType') || undefined;
+    const includedCheckedBagsOnly = searchParams.get('includedCheckedBagsOnly') === 'true';
     const bestRateOnly = searchParams.get('bestRateOnly') === 'true';
     const view = (searchParams.get('view') as 'FULL' | 'LIGHT' | 'LONG') || 'FULL';
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : undefined;
 
     // Validate required parameters
-    if (!cityName) {
+    if (!checkInDate || !checkOutDate) {
       return NextResponse.json(
-        { error: 'City name is required' },
+        { error: 'Check-in and check-out dates are required' },
         { status: 400 }
       );
     }
 
-    console.log('🏨 Hotel search by city:', { cityName, countryCode });
+    if (!hotelIds && !cityCode && (!latitude || !longitude)) {
+      return NextResponse.json(
+        { error: 'Either hotelIds, cityCode, or both latitude and longitude are required' },
+        { status: 400 }
+      );
+    }
 
-    // Search for hotels by city name
-    const hotels = await AmadeusService.searchHotelsByCity(cityName, countryCode, {
+    // Build hotel offers search request
+    const hotelOffersRequest: HotelOffersSearchRequest = {
+      hotelIds,
+      cityCode,
+      latitude,
+      longitude,
       radius,
       radiusUnit,
       chainCodes,
@@ -50,24 +66,34 @@ export async function GET(request: NextRequest) {
       hotelSource,
       checkInDate,
       checkOutDate,
+      roomQuantity,
+      priceRange,
       currency,
+      paymentPolicy,
+      boardType,
+      includedCheckedBagsOnly,
       bestRateOnly,
       view,
       page: {
         limit,
         offset
       }
-    });
+    };
+
+    console.log('🏨 Hotel offers search request:', hotelOffersRequest);
+
+    // Search for hotel offers
+    const hotelOffers = await AmadeusService.searchHotelOffers(hotelOffersRequest);
 
     return NextResponse.json({
       success: true,
-      data: hotels.data,
-      meta: hotels.meta,
-      message: `Found ${hotels.meta.count} hotels in ${cityName}`
+      data: hotelOffers.data,
+      meta: hotelOffers.meta,
+      message: `Found ${hotelOffers.meta.count} hotel offers`
     });
 
   } catch (error) {
-    console.error('❌ Hotel search by city error:', error);
+    console.error('❌ Hotel offers search error:', error);
 
     if (error instanceof Error) {
       // Handle specific validation errors
@@ -79,7 +105,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Handle Amadeus API errors
-      if (error.message.includes('Amadeus Hotel API error')) {
+      if (error.message.includes('Amadeus Hotel Offers API error')) {
         return NextResponse.json(
           { error: error.message },
           { status: 502 }

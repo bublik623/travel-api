@@ -2,7 +2,7 @@ import { Plane, MapPin, Calendar, Users } from "lucide-react";
 import { GeocodeDemo } from "@/components/geocode-demo";
 import { AirportSearchDemo } from "@/components/airport-search-demo";
 import { FlightSearchDemo } from "@/components/flight-search-demo";
-import { HotelSearchDemo } from "@/components/hotel-search-demo";
+import HotelSearchDemo from "@/components/hotel-search-demo";
 
 export default function HomePage() {
   return (
