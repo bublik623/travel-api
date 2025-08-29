@@ -1242,7 +1242,7 @@ export class AmadeusService {
       checkOutDate,
       roomQuantity = 1,
       adults = 1,
-      currency = 'USD'
+      currency = 'EUR'
     } = request;
 
     // Validate required parameters
@@ -1544,13 +1544,13 @@ export class AmadeusService {
         console.log('✅ Hotel search by IDs request successful');
         
         // Limit results to 10 hotels for performance
-        const limitedData = response.data.data.slice(0, 10);
+        const limitedData = response.data.data.slice(0, 100);
         const limitedResponse = {
           ...response.data,
           data: limitedData,
           meta: {
             ...response.data.meta,
-            count: Math.min(response.data.meta.count, 10)
+            count: Math.min(response.data.meta.count, 100)
           }
         };
         
