@@ -1353,7 +1353,7 @@ export class AmadeusService {
       const responseData = response.data;
       
       // Limit results to 10 hotels for performance
-      const limitedData = responseData.data ? responseData.data.slice(0, 10) : [];
+      const limitedData = responseData.data ? responseData.data.slice(0, 100) : [];
       const limitedResponse = {
         ...responseData,
         data: limitedData,
